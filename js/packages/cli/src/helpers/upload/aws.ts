@@ -17,7 +17,7 @@ async function uploadFile(
     Bucket: awsS3Bucket,
     Key: filename,
     Body: body,
-    ACL: 'public-read',
+    // ACL: 'public-read',
     ContentType: contentType,
   };
 
@@ -25,10 +25,10 @@ async function uploadFile(
     await s3Client.send(new PutObjectCommand(mediaUploadParams));
     log.info('uploaded filename:', filename);
   } catch (err) {
-    log.debug('Error', err);
+    log.info('Error', err);
   }
 
-  const url = `https://${awsS3Bucket}.s3.amazonaws.com/${filename}`;
+  const url = `https://${awsS3Bucket}/${filename}`;
   log.debug('Location:', url);
   return url;
 }
@@ -39,7 +39,8 @@ export async function awsUpload(
   animation: string,
   manifestBuffer: Buffer,
 ) {
-  const REGION = 'us-east-1'; // TODO: Parameterize this.
+
+  const REGION = 'eu-west-2'; // TODO: Parameterize this.
   const s3Client = new S3Client({ region: REGION });
 
   async function uploadMedia(media) {
@@ -71,6 +72,14 @@ export async function awsUpload(
   if (animation) {
     manifestJson.animation_url = animationUrl;
   }
+
+  manifestJson.properties.files = manifestJson.properties.files.map(f => {
+    if (f.type.includes('image/jpeg')) {
+      return { ...f, uri: imageUrl };
+    } else {
+      return { ...f };
+    }
+  });
 
   const updatedManifestBuffer = Buffer.from(JSON.stringify(manifestJson));
 
